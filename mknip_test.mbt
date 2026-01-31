@@ -150,3 +150,81 @@ test "find_unused_exports returns empty when all used" {
   let unused = find_unused_exports(files)
   assert_eq(unused.length(), 0)
 }
+
+///|
+test "parse_moon_pkg_json parses string imports" {
+  let json =
+    #| {
+    #|   "import": [
+    #|     "moonbitlang/parser",
+    #|     "moonbitlang/core/json"
+    #|   ]
+    #| }
+  let config = parse_moon_pkg_json(json)
+  assert_true(config is Some(_))
+  let c = config.unwrap()
+  assert_eq(c.imports.length(), 2)
+  assert_true(c.imports.contains("moonbitlang/parser"))
+  assert_true(c.imports.contains("moonbitlang/core/json"))
+}
+
+///|
+test "parse_moon_pkg_json parses object imports with path" {
+  let json =
+    #| {
+    #|   "import": [
+    #|     { "path": "myorg/mylib", "alias": "lib" }
+    #|   ]
+    #| }
+  let config = parse_moon_pkg_json(json)
+  assert_true(config is Some(_))
+  let c = config.unwrap()
+  assert_eq(c.imports.length(), 1)
+  assert_true(c.imports.contains("myorg/mylib"))
+}
+
+///|
+test "extract_pkg_refs finds package references" {
+  let src =
+    #| fn main {
+    #|   let x = @parser.parse("test")
+    #|   let y = @json.parse("{}")
+    #| }
+  let refs = extract_pkg_refs(src)
+  assert_true(refs.contains("parser"))
+  assert_true(refs.contains("json"))
+}
+
+///|
+test "find_unused_deps detects unused dependency" {
+  let pkg_json =
+    #| {
+    #|   "import": [
+    #|     "moonbitlang/parser",
+    #|     "moonbitlang/unused"
+    #|   ]
+    #| }
+  let src =
+    #| fn main {
+    #|   let _ = @parser.parse("test")
+    #| }
+  let unused = find_unused_deps(pkg_json, [SourceFile::new("main.mbt", src)])
+  assert_eq(unused.length(), 1)
+  assert_true(unused.contains("moonbitlang/unused"))
+}
+
+///|
+test "find_unused_deps returns empty when all used" {
+  let pkg_json =
+    #| {
+    #|   "import": [
+    #|     "moonbitlang/parser"
+    #|   ]
+    #| }
+  let src =
+    #| fn main {
+    #|   let _ = @parser.parse("test")
+    #| }
+  let unused = find_unused_deps(pkg_json, [SourceFile::new("main.mbt", src)])
+  assert_eq(unused.length(), 0)
+}

@@ -4,6 +4,7 @@
     "moonbitlang/parser/syntax",
     "moonbitlang/parser/basic",
     "moonbitlang/core/list",
-    "moonbitlang/core/hashset"
+    "moonbitlang/core/hashset",
+    "moonbitlang/core/json"
   ]
 }
