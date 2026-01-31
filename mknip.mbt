@@ -101,3 +101,76 @@ pub fn extract_pub_symbols(
   }
   symbols
 }
+
+priv struct RefCollector {
+  refs : Array[String]
+}
+
+fn RefCollector::new() -> RefCollector {
+  { refs: [] }
+}
+
+fn extract_name_from_long_ident(ident : @syntax.LongIdent) -> String {
+  match ident {
+    Ident(name~) => name
+    Dot(pkg~, id~) => "\{pkg}.\{id}"
+  }
+}
+
+impl @syntax.IterVisitor for RefCollector with visit_Expr_Ident(
+  self,
+  id~ : @syntax.Var,
+  loc~ : @basic.Location
+) -> Unit {
+  let _ = loc
+  let name = extract_name_from_long_ident(id.name)
+  self.refs.push(name)
+}
+
+impl @syntax.IterVisitor for RefCollector with visit_Type_Name(
+  self,
+  constr_id~ : @syntax.ConstrId,
+  tys~ : @list.List[@syntax.Type],
+  loc~ : @basic.Location
+) -> Unit {
+  let _ = loc
+  let name = extract_name_from_long_ident(constr_id.id)
+  self.refs.push(name)
+  for ty in tys {
+    self.base().visit_Type(ty)
+  }
+}
+
+impl @syntax.IterVisitor for RefCollector with visit_Expr_Constr(
+  self,
+  constr~ : @syntax.Constructor,
+  loc~ : @basic.Location
+) -> Unit {
+  let _ = loc
+  self.refs.push(constr.name.name)
+}
+
+impl @syntax.IterVisitor for RefCollector with visit_Pattern_Constr(
+  self,
+  constr~ : @syntax.Constructor,
+  args~ : @list.List[@syntax.ConstrPatArg]?,
+  is_open~ : Bool,
+  loc~ : @basic.Location
+) -> Unit {
+  let _ = (is_open, loc)
+  self.refs.push(constr.name.name)
+  if args is Some(arg_list) {
+    for arg in arg_list {
+      self.base().visit_ConstrPatArg(arg)
+    }
+  }
+}
+
+pub fn extract_refs(source : String) -> Array[String] {
+  let (impls, _) = @parser.parse_string(source)
+  let collector = RefCollector::new()
+  for impl_ in impls {
+    collector.base().visit_Impl(impl_)
+  }
+  collector.refs
+}

@@ -56,3 +56,45 @@ test "extract_pub_symbols finds pub let and const" {
   let symbols = extract_pub_symbols(source, "test.mbt")
   assert_eq(symbols.length(), 2)
 }
+
+///|
+test "extract_refs finds function calls" {
+  let source =
+    #| fn main {
+    #|   let x = foo()
+    #|   bar(x)
+    #| }
+  let refs = extract_refs(source)
+  assert_true(refs.contains("foo"))
+  assert_true(refs.contains("bar"))
+  assert_true(refs.contains("x"))
+}
+
+///|
+test "extract_refs finds type references" {
+  let source =
+    #| fn process(p: Point) -> Color {
+    #|   Color::Red
+    #| }
+  let refs = extract_refs(source)
+  assert_true(refs.contains("Point"))
+  assert_true(refs.contains("Color"))
+}
+
+///|
+test "extract_refs finds constructor usage" {
+  let source =
+    #| fn make_color() -> Color {
+    #|   Red
+    #| }
+    #|
+    #| fn match_color(c: Color) -> Int {
+    #|   match c {
+    #|     Red => 1
+    #|     Blue => 2
+    #|   }
+    #| }
+  let refs = extract_refs(source)
+  assert_true(refs.contains("Red"))
+  assert_true(refs.contains("Blue"))
+}
