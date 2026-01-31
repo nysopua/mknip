@@ -1,18 +1,51 @@
+///|
+/// File path wrapper to prevent String confusion
+pub struct FilePath(String) derive(Eq, Hash, Show)
+
+///|
+pub fn FilePath::to_string(self : FilePath) -> String {
+  self.0
+}
+
+///|
+pub fn FilePath::dir(self : FilePath) -> String {
+  let chars = self.0.to_array()
+  let mut last_slash = -1
+  for i, c in chars {
+    if c == '/' {
+      last_slash = i
+    }
+  }
+  if last_slash < 0 {
+    "."
+  } else {
+    let buf = StringBuilder::new()
+    for i = 0; i < last_slash; i = i + 1 {
+      buf.write_char(chars[i])
+    }
+    buf.to_string()
+  }
+}
+
+///|
 pub enum SymbolKind {
   Fn
   Struct
   Enum
+  EnumVariant(parent~ : String)
   Trait
   Let
   Const
   TypeAlias
 }
 
+///|
 pub fn SymbolKind::to_string(self : SymbolKind) -> String {
   match self {
     Fn => "fn"
     Struct => "struct"
     Enum => "enum"
+    EnumVariant(_) => "variant"
     Trait => "trait"
     Let => "let"
     Const => "const"
@@ -20,35 +53,126 @@ pub fn SymbolKind::to_string(self : SymbolKind) -> String {
   }
 }
 
+///|
 pub struct Location {
-  file : String
+  file : FilePath
   line : Int
   column : Int
 }
 
+///|
 pub struct Symbol {
   name : String
   kind : SymbolKind
   loc : Location
 }
 
-pub fn Symbol::new(name : String, kind : SymbolKind, loc : Location) -> Symbol {
-  { name, kind, loc }
+///|
+pub fn Symbol::new(
+  name : String,
+  kind : SymbolKind,
+  file : FilePath,
+  line : Int,
+  column : Int,
+) -> Symbol {
+  { name, kind, loc: { file, line, column } }
 }
 
+///|
 pub fn Symbol::to_string(self : Symbol) -> String {
-  "\{self.kind.to_string()} \{self.name} (\{self.loc.file}:\{self.loc.line})"
+  "\{self.kind.to_string()} \{self.name} (\{self.loc.file.to_string()}:\{self.loc.line})"
 }
 
+///|
 pub struct SourceFile {
-  path : String
+  path : FilePath
   content : String
 }
 
+///|
 pub fn SourceFile::new(path : String, content : String) -> SourceFile {
-  { path, content }
+  { path: FilePath(path), content }
 }
 
+///|
+/// Extracted from moon.pkg.json or moon.pkg
 pub struct PackageConfig {
   imports : Array[String]
+  is_main : Bool
+}
+
+///|
+pub fn PackageConfig::empty() -> PackageConfig {
+  { imports: [], is_main: false }
+}
+
+///|
+pub struct FileAnalysis {
+  path : FilePath
+  symbols : Array[Symbol]
+  refs : Array[String]
+}
+
+///|
+/// Static snapshot of analyzed codebase
+pub struct SymbolGraph {
+  files : Array[FilePath]
+  symbols_by_name : Map[String, Array[Symbol]]
+  symbols_by_file : Map[String, Array[Symbol]]
+  refs_by_file : Map[String, Array[String]]
+}
+
+///| Build symbol graph from file analyses
+pub fn SymbolGraph::from_analyses(
+  analyses : Array[FileAnalysis],
+) -> SymbolGraph {
+  let files : Array[FilePath] = []
+  let symbols_by_name : Map[String, Array[Symbol]] = {}
+  let symbols_by_file : Map[String, Array[Symbol]] = {}
+  let refs_by_file : Map[String, Array[String]] = {}
+  for analysis in analyses {
+    files.push(analysis.path)
+    let path_str = analysis.path.to_string()
+    symbols_by_file[path_str] = analysis.symbols
+    refs_by_file[path_str] = analysis.refs
+    for sym in analysis.symbols {
+      add_to_multimap(symbols_by_name, sym.name, sym)
+    }
+  }
+  { files, symbols_by_name, symbols_by_file, refs_by_file }
+}
+
+///| Add value to a multimap (map of arrays)
+fn[K : Eq + Hash, V] add_to_multimap(
+  map : Map[K, Array[V]],
+  key : K,
+  value : V,
+) -> Unit {
+  match map.get(key) {
+    Some(arr) => arr.push(value)
+    None => map[key] = [value]
+  }
+}
+
+///|
+pub struct ReachabilityResult {
+  reachable_symbols : @hashset.HashSet[String]
+  reachable_files : @hashset.HashSet[String]
+}
+
+///|
+pub fn ReachabilityResult::empty() -> ReachabilityResult {
+  { reachable_symbols: @hashset.new(), reachable_files: @hashset.new() }
+}
+
+///|
+pub struct AnalysisResult {
+  unused_symbols : Array[Symbol]
+  unreachable_files : Array[FilePath]
+  unused_deps : Array[String]
+}
+
+///|
+pub fn AnalysisResult::empty() -> AnalysisResult {
+  { unused_symbols: [], unreachable_files: [], unused_deps: [] }
 }
