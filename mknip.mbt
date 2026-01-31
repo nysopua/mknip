@@ -174,3 +174,30 @@ pub fn extract_refs(source : String) -> Array[String] {
   }
   collector.refs
 }
+
+pub struct SourceFile {
+  path : String
+  content : String
+}
+
+pub fn SourceFile::new(path : String, content : String) -> SourceFile {
+  { path, content }
+}
+
+pub fn find_unused_exports(files : Array[SourceFile]) -> Array[Symbol] {
+  let all_exports : Array[Symbol] = []
+  let all_refs : @hashset.HashSet[String] = @hashset.new()
+
+  for file in files {
+    let exports = extract_pub_symbols(file.content, file.path)
+    for sym in exports {
+      all_exports.push(sym)
+    }
+    let refs = extract_refs(file.content)
+    for ref_ in refs {
+      all_refs.add(ref_)
+    }
+  }
+
+  all_exports.filter(fn(sym) { not(all_refs.contains(sym.name)) })
+}

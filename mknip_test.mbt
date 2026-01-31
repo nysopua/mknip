@@ -98,3 +98,55 @@ test "extract_refs finds constructor usage" {
   assert_true(refs.contains("Red"))
   assert_true(refs.contains("Blue"))
 }
+
+///|
+test "find_unused_exports detects unused pub fn" {
+  let lib_src =
+    #| pub fn used_fn() -> Int { 1 }
+    #| pub fn unused_fn() -> Int { 2 }
+  let main_src =
+    #| fn main {
+    #|   let _ = used_fn()
+    #| }
+  let files = [
+    SourceFile::new("lib.mbt", lib_src),
+    SourceFile::new("main.mbt", main_src),
+  ]
+  let unused = find_unused_exports(files)
+  assert_eq(unused.length(), 1)
+  assert_eq(unused[0].name, "unused_fn")
+}
+
+///|
+test "find_unused_exports detects unused pub struct" {
+  let types_src =
+    #| pub struct UsedPoint { x: Int }
+    #| pub struct UnusedPoint { y: Int }
+  let main_src =
+    #| fn process(p: UsedPoint) -> Int {
+    #|   p.x
+    #| }
+  let files = [
+    SourceFile::new("types.mbt", types_src),
+    SourceFile::new("main.mbt", main_src),
+  ]
+  let unused = find_unused_exports(files)
+  assert_eq(unused.length(), 1)
+  assert_eq(unused[0].name, "UnusedPoint")
+}
+
+///|
+test "find_unused_exports returns empty when all used" {
+  let lib_src =
+    #| pub fn add(a: Int, b: Int) -> Int { a + b }
+  let main_src =
+    #| fn main {
+    #|   let _ = add(1, 2)
+    #| }
+  let files = [
+    SourceFile::new("lib.mbt", lib_src),
+    SourceFile::new("main.mbt", main_src),
+  ]
+  let unused = find_unused_exports(files)
+  assert_eq(unused.length(), 0)
+}
