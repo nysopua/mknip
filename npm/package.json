@@ -1,0 +1,30 @@
+{
+  "name": "@nysopua/mknip",
+  "version": "0.1.0",
+  "description": "Dead code detector for MoonBit",
+  "bin": {
+    "mknip": "./bin/mknip.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "cd .. && moon build --target js && cp target/js/release/build/cmd/main/main.js npm/dist/",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "moonbit",
+    "dead-code",
+    "lint",
+    "unused-exports"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nysopua/mknip"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  }
+}
