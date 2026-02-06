@@ -9,21 +9,21 @@ pub fn FilePath::to_string(self : FilePath) -> String {
 
 ///|
 pub fn FilePath::dir(self : FilePath) -> String {
-  let chars = self.0.to_array()
-  let mut last_slash = -1
-  for i, c in chars {
-    if c == '/' {
-      last_slash = i
-    }
-  }
-  if last_slash < 0 {
+  let parts = self.0.split("/").collect()
+  if parts.length() <= 1 {
     "."
   } else {
-    let buf = StringBuilder::new()
-    for i = 0; i < last_slash; i = i + 1 {
-      buf.write_char(chars[i])
+    let sb = StringBuilder::new()
+    for i, part in parts {
+      if i == parts.length() - 1 {
+        break
+      }
+      if i > 0 {
+        sb.write_char('/')
+      }
+      sb.write_string(part.to_string())
     }
-    buf.to_string()
+    sb.to_string()
   }
 }
 

@@ -1,8 +1,10 @@
 ///|
 pub fn analyze_file(file : SourceFile) -> FileAnalysis {
-  let symbols = extract_pub_symbols(file.content, file.path)
-  let refs = extract_refs(file.content)
-  { path: file.path, symbols, refs }
+  {
+    path: file.path,
+    symbols: extract_pub_symbols(file.content, file.path),
+    refs: extract_refs(file.content),
+  }
 }
 
 ///|
@@ -13,17 +15,20 @@ pub fn analyze_files(files : Array[SourceFile]) -> Array[FileAnalysis] {
 ///|
 /// Extract package names from "pkg.name" patterns
 pub fn extract_pkg_refs(source : String) -> Array[String] {
-  let refs = extract_refs(source)
-  let pkgs : @hashset.HashSet[String] = @hashset.new()
-  for ref_ in refs {
-    if ref_.contains(".") {
-      match ref_.split(".").collect().get(0) {
-        Some(pkg) => pkgs.add(pkg.to_string())
-        None => ()
-      }
-    }
-  }
-  pkgs.to_array()
+  extract_refs(source)
+    .iter()
+    .filter(fn(ref_) { ref_.contains(".") })
+    .filter_map(fn(ref_) { ref_.split(".").collect().get(0) })
+    .map(fn(s) { s.to_string() })
+    .collect()
+    |> to_unique
+}
+
+///|
+fn to_unique(arr : Array[String]) -> Array[String] {
+  let set : @hashset.HashSet[String] = @hashset.new()
+  arr.each(fn(s) { set.add(s) })
+  set.to_array()
 }
 
 ///|
@@ -201,11 +206,9 @@ impl @syntax.IterVisitor for RefCollector with visit_Pattern_Constr(
 ) -> Unit {
   let _ = (is_open, loc)
   self.refs.push(constr.name.name)
-  if args is Some(arg_list) {
-    for arg in arg_list {
-      self.base().visit_ConstrPatArg(arg)
-    }
-  }
+  args.iter().each(fn(arg_list) {
+    arg_list.each(fn(arg) { self.base().visit_ConstrPatArg(arg) })
+  })
 }
 
 ///|
@@ -215,9 +218,7 @@ impl @syntax.IterVisitor for RefCollector with visit_Parameter_Labelled(
   ty~,
 ) -> Unit {
   let _ = binder
-  if ty is Some(t) {
-    self.base().visit_Type(t)
-  }
+  ty.iter().each(fn(t) { self.base().visit_Type(t) })
 }
 
 ///|
@@ -227,9 +228,7 @@ impl @syntax.IterVisitor for RefCollector with visit_Parameter_Positional(
   ty~,
 ) -> Unit {
   let _ = binder
-  if ty is Some(t) {
-    self.base().visit_Type(t)
-  }
+  ty.iter().each(fn(t) { self.base().visit_Type(t) })
 }
 
 ///|
@@ -281,13 +280,9 @@ impl @syntax.IterVisitor for RefCollector with visit_Impl_TopImpl(
 ) -> Unit {
   let _ = (method_name, has_error, quantifiers, vis, loc, attrs, doc)
   add_long_ident_refs(self, trait_.name)
-  if self_ty is Some(ty) {
-    self.base().visit_Type(ty)
-  }
+  self_ty.iter().each(fn(ty) { self.base().visit_Type(ty) })
   params.each(fn(param) { self.base().visit_Parameter(param) })
-  if ret_ty is Some(ty) {
-    self.base().visit_Type(ty)
-  }
+  ret_ty.iter().each(fn(ty) { self.base().visit_Type(ty) })
   self.base().visit_ErrorType(err_ty)
   self.base().visit_DeclBody(body)
 }

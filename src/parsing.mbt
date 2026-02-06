@@ -13,22 +13,24 @@ pub fn parse_moon_pkg_json(content : String) -> PackageConfig? {
 
 ///|
 fn extract_json_imports(obj : Map[String, Json]) -> Array[String] {
-  let imports : Array[String] = []
-  match obj.get("import") {
-    Some(Array(arr)) =>
-      for item in arr {
-        match item {
-          String(s) => imports.push(s)
-          Object(o) =>
-            if o.get("path") is Some(String(p)) {
-              imports.push(p)
-            }
-          _ => ()
-        }
-      }
-    _ => ()
+  let arr = match obj.get("import") {
+    Some(Array(arr)) => arr
+    _ => return []
   }
-  imports
+  arr
+    .iter()
+    .filter_map(fn(item) {
+      match item {
+        String(s) => Some(s)
+        Object(o) =>
+          match o.get("path") {
+            Some(String(p)) => Some(p)
+            _ => None
+          }
+        _ => None
+      }
+    })
+    .collect()
 }
 
 ///| DSL format (moon.pkg)
@@ -44,13 +46,15 @@ fn check_is_main_normalized(content : String) -> Bool {
   if not(content.contains("\"is-main\"")) {
     return false
   }
-  let buf = StringBuilder::new()
-  for c in content {
-    if not(is_whitespace(c)) {
-      buf.write_char(c)
-    }
-  }
-  buf.to_string().contains("\"is-main\":true")
+  content
+    .iter()
+    .filter(fn(c) { not(is_whitespace(c)) })
+    .fold(init=StringBuilder::new(), fn(sb, c) {
+      sb.write_char(c)
+      sb
+    })
+    .to_string()
+    .contains("\"is-main\":true")
 }
 
 ///|
@@ -127,17 +131,18 @@ fn skip_whitespace_and_commas(chars : Array[Char], start : Int, len : Int) -> In
 fn extract_quoted_string(
   chars : Array[Char],
   start : Int,
-  len : Int,
+  _len : Int,
 ) -> (String, Int) {
-  let mut i = start
-  while i < len && chars[i] != '"' {
-    i = i + 1
-  }
-  let buf = StringBuilder::new()
-  for j = start; j < i; j = j + 1 {
-    buf.write_char(chars[j])
-  }
-  (buf.to_string(), i + 1)
+  let end = chars
+    .iter()
+    .drop(start)
+    .take_while(fn(c) { c != '"' })
+    .count() + start
+  let str = chars[start:end].iter().fold(init=StringBuilder::new(), fn(sb, c) {
+    sb.write_char(c)
+    sb
+  }).to_string()
+  (str, end + 1)
 }
 
 ///|

@@ -3,13 +3,13 @@ pub fn find_entry_files(
   files : Array[SourceFile],
   main_pkg_dirs : Array[String],
 ) -> Array[FilePath] {
-  let entries : Array[FilePath] = []
-  for file in files {
-    if is_in_main_pkg(file.path, main_pkg_dirs) && has_entry_point(file.content) {
-      entries.push(file.path)
-    }
-  }
-  entries
+  files
+    .iter()
+    .filter(fn(file) {
+      is_in_main_pkg(file.path, main_pkg_dirs) && has_entry_point(file.content)
+    })
+    .map(fn(file) { file.path })
+    .collect()
 }
 
 ///|
