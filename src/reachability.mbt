@@ -4,12 +4,12 @@ pub fn find_entry_files(
   main_pkg_dirs : Array[String],
 ) -> Array[FilePath] {
   files
-    .iter()
-    .filter(fn(file) {
-      is_in_main_pkg(file.path, main_pkg_dirs) && has_entry_point(file.content)
-    })
-    .map(fn(file) { file.path })
-    .collect()
+  .iter()
+  .filter(fn(file) {
+    is_in_main_pkg(file.path, main_pkg_dirs) && has_entry_point(file.content)
+  })
+  .map(fn(file) { file.path })
+  .collect()
 }
 
 ///|
@@ -58,7 +58,8 @@ pub fn compute_reachability(
   result
 }
 
-///| Process references in a file, adding reachable symbols to result
+///|
+/// Process references in a file, adding reachable symbols to result
 fn process_file_refs(
   graph : SymbolGraph,
   file : String,
@@ -78,7 +79,8 @@ fn process_file_refs(
   }
 }
 
-///| Mark all exports in entry files as reachable
+///|
+/// Mark all exports in entry files as reachable
 fn mark_entry_exports_reachable(
   graph : SymbolGraph,
   entry_files : Array[FilePath],
@@ -90,7 +92,8 @@ fn mark_entry_exports_reachable(
   }
 }
 
-///| Library packages (is-main: false) treat all pub symbols as reachable
+///|
+/// Library packages (is-main: false) treat all pub symbols as reachable
 pub fn extend_with_library_exports(
   graph : SymbolGraph,
   main_pkg_dirs : Array[String],

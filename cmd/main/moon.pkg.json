@@ -1,8 +1,0 @@
-{
-  "is-main": true,
-  "import": [
-    "nysopua/mknip/src",
-    "moonbitlang/x/fs",
-    "moonbitlang/x/sys"
-  ]
-}
