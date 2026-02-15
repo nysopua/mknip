@@ -16,12 +16,12 @@ pub fn analyze_files(files : Array[SourceFile]) -> Array[FileAnalysis] {
 /// Extract package names from "pkg.name" patterns
 pub fn extract_pkg_refs(source : String) -> Array[String] {
   extract_refs(source)
-    .iter()
-    .filter(fn(ref_) { ref_.contains(".") })
-    .filter_map(fn(ref_) { ref_.split(".").collect().get(0) })
-    .map(fn(s) { s.to_string() })
-    .collect()
-    |> to_unique
+  .iter()
+  .filter(fn(ref_) { ref_.contains(".") })
+  .filter_map(fn(ref_) { ref_.split(".").collect().get(0) })
+  .map(fn(s) { s.to_string() })
+  .collect()
+  |> to_unique
 }
 
 ///|
@@ -206,7 +206,9 @@ impl @syntax.IterVisitor for RefCollector with visit_Pattern_Constr(
 ) -> Unit {
   let _ = (is_open, loc)
   self.refs.push(constr.name.name)
-  args.iter().each(fn(arg_list) {
+  args
+  .iter()
+  .each(fn(arg_list) {
     arg_list.each(fn(arg) { self.base().visit_ConstrPatArg(arg) })
   })
 }
