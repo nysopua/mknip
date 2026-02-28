@@ -122,7 +122,8 @@ pub struct SymbolGraph {
   refs_by_file : Map[String, Array[String]]
 }
 
-///| Build symbol graph from file analyses
+///|
+/// Build symbol graph from file analyses
 pub fn SymbolGraph::from_analyses(
   analyses : Array[FileAnalysis],
 ) -> SymbolGraph {
@@ -142,7 +143,8 @@ pub fn SymbolGraph::from_analyses(
   { files, symbols_by_name, symbols_by_file, refs_by_file }
 }
 
-///| Add value to a multimap (map of arrays)
+///|
+/// Add value to a multimap (map of arrays)
 fn[K : Eq + Hash, V] add_to_multimap(
   map : Map[K, Array[V]],
   key : K,
